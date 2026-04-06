@@ -1,0 +1,51 @@
+name: Build and Push DCIM Frontend
+
+on:
+  workflow_dispatch:
+#  push:
+#    branches:
+#      - main
+#    # Only trigger if frontend files change
+#    paths:
+#      - "src/**"
+#      - "public/**"
+#      - "Dockerfile"
+#      - "package.json"
+#      - ".github/workflows/docker-build.yml"
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOKERHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          # Replace 'rockbottle' with your actual Docker Hub username if different
+          tags: |
+            pramoneo/dcim-be:latest
+            pramoneo/dcim-be:${{ github.sha }}
+          # This passes your API URL into the Docker build process
+          # so Next.js can embed it into the static JS files
+          build-args: |
+            NEXT_PUBLIC_API_BASE_URL=/api
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+

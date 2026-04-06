@@ -1,0 +1,7 @@
+dcinv.db
+dcinv.db-journal
+*.log
+*.bak
+*.tmp
+*.swp
+*.swo
