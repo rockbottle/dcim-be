@@ -13,6 +13,10 @@ on:
 #      - "package.json"
 #      - ".github/workflows/docker-build.yml"
 
+permissions:
+  contents: read
+  packages: read
+
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -48,4 +52,3 @@ jobs:
             NEXT_PUBLIC_API_BASE_URL=/api
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
