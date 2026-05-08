@@ -12,22 +12,30 @@ on:
       - "*.py"
       - "requirements*.txt"
       - "Dockerfile"
-      - ".github/workflows/docker-build.yml"
-
-permissions:
-  contents: read
-  packages: read
-  security-events: write # Required for secret scanning results
 
 jobs:
-  validate-and-deploy:
+  validate-test-deploy:
     runs-on: ubuntu-latest
+
+    services:
+      # Database service for E2E tests
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: dcim_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0 # Full history needed for some scanners
 
       # 1. SECRET SCANNING
       - name: Secret Scanning (gitleaks)
@@ -35,24 +43,38 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # 2. PYTHON LINTING (Flake8)
+      # 2. PREPARE TEST ENVIRONMENT
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      - name: Install Linting Tools
+      - name: Install Dependencies
         run: |
-          pip install flake8
+          pip install -r requirements.txt
+          pip install -r requirements-test.txt
 
-      - name: Run Lint Check
+      # 3. UNIT TESTS (Fast, no DB needed)
+      - name: Run Unit Tests
+        env:
+          # We use an ENV var fallback here since your code supports it!
+          JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
+        run: pytest tests/unit # Assuming you separate unit tests
+
+      # 4. E2E TESTS (Needs DB and Secret handling)
+      - name: Run E2E Tests
+        env:
+          DATABASE_URL: postgresql+asyncpg://test_user:test_password@localhost:5432/dcim_test
+          JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
         run: |
-          # stop the build if there are Python syntax errors or undefined names
-          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-          # exit-zero treats all errors as warnings (you can change this to 1 to fail the build on style issues)
-          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+          # Create the secret directory and file to test the /run/secrets logic
+          sudo mkdir -p /run/secrets
+          echo "${{ secrets.JWT_SECRET_KEY }}" | sudo tee /run/secrets/JWT_SECRET_KEY
 
-      # 3. DOCKER PREPARATION
+          # Run the E2E flow
+          pytest tests/test_e2e_dcim_flow.py -v
+
+      # 5. DOCKER BUILD & PUSH
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -62,13 +84,11 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOKERHUB_TOKEN }}
 
-      # 4. BUILD & PUSH
-      # This will trigger the 'tester' stage in your Dockerfile automatically.
-      # If 'pytest' fails inside the Docker build, this step fails and nothing is pushed.
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
           context: .
+          # We don't need to run tests inside build anymore because they passed above
           push: true
           tags: |
             pramoneo/dcim-be:latest

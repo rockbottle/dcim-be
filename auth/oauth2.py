@@ -12,7 +12,15 @@ from db import db_user
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-SECRET_KEY = 'bebaefcccdd99f859b8e7ed2db661c02a0dd126ba42441feb188e060bcd8a74f'
+#SECRET_KEY = 'bebaefcccdd99f859b8e7ed2db661c02a0dd126ba42441feb188e060bcd8a74f'
+def get_secret(secret_name):
+    try:
+        with open(f'/run/secrets/{secret_name}', 'r') as f:
+            return f.read().strip()
+    except IOError:
+        return os.getenv(secret_name)
+
+SECRET_KEY = get_secret('JWT_SECRET_KEY')
 ALGORITHM = 'HS256'
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 

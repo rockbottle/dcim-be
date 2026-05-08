@@ -18,36 +18,34 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 
-# --- STAGE 2: TESTER (Runs Unit Tests) ---
+# --- STAGE 2: TESTER (Prepared Environment for Tests) ---
 FROM base AS tester
 
 # Install test-specific requirements
 COPY requirements-test.txt .
-RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements-test.txt
 
 # Copy all code including tests
 COPY . .
 
-# Run tests - the build will stop here if they fail
-RUN pytest tests/
-
+# NOTE: Removed 'RUN pytest tests/' from here. 
+# Unit tests can stay if they don't need a DB, 
+# but E2E tests must be triggered by GitHub Actions.
 
 # --- STAGE 3: RUNTIME (Production Image) ---
 FROM python:3.12-alpine AS runtime
 
 WORKDIR /app
 
-# Runtime libraries for Alpine
+# Runtime libraries for Alpine (libpq is essential for postgres)
 RUN apk add --no-cache libpq libffi
 
-# Copy the venv from the BASE stage (does NOT include test tools)
+# Copy the venv from the BASE stage
 COPY --from=base /opt/venv /opt/venv
 
-# Explicitly copy ONLY application files
+# Explicitly copy application files
 COPY main.py .
 COPY schemas.py .
-#COPY models.py .
 COPY auth/ ./auth/
 COPY db/ ./db/
 COPY router/ ./router/
