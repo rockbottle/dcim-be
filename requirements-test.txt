@@ -1,7 +1,7 @@
 # --- Test Framework ---
 pytest==8.1.1
 pytest-asyncio==0.23.5  # Required for testing 'async def' routes
-
+asyncpg
 # --- HTTP Simulation ---
 httpx==0.27.0           # Required by FastAPI's TestClient to make API calls
 
