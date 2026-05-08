@@ -1,5 +1,6 @@
 from typing import List, Optional
-from pydantic import BaseModel, Field
+#from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict # <--- Add ConfigDict
 
 class CompanyBase(BaseModel):
     name: str
@@ -19,9 +20,7 @@ class UserDisplay(BaseModel):
   username: str
   email: str
   company_name: Optional[str] = None
-#  items: List[Article] = []
-  class Config():
-    from_attributes = True
+  model_config = ConfigDict(from_attributes=True)
 
 # Article inside UserDisplay
 class DcBase(BaseModel):
@@ -29,16 +28,14 @@ class DcBase(BaseModel):
   uspace: int
   nport: int
   sport: int
-  class Config():
-    from_attributes = True
+  model_config = ConfigDict(from_attributes=True)
 
 class DcUpdate(BaseModel):
   dcpower: Optional[int] = None
   uspace: Optional[int] = None
   nport: Optional[int] = None
   sport: Optional[int] = None
-  class Config():
-    from_attributes = True
+  model_config = ConfigDict(from_attributes=True)
 
 class DcInvBase(BaseModel):
   device_type: str
@@ -53,8 +50,7 @@ class DcInvBase(BaseModel):
   device_sports: int = 0
   power_status: bool
   device_status: bool
-  class Config():
-    from_attributes = True
+  model_config = ConfigDict(from_attributes=True)
 
 class DcInvUpdate(BaseModel):
   device_type: Optional[str] = None
@@ -69,7 +65,7 @@ class DcInvUpdate(BaseModel):
   device_sports: Optional[int] = None
   power_status: Optional[bool] = None
   device_status: Optional[bool] = None
-  class Config():
-    from_attributes = True
+  model_config = ConfigDict(from_attributes=True)
+
 
 

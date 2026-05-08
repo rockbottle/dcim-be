@@ -45,7 +45,7 @@ def create_dc_usage(db: Session, request: DcBase, current_user: dict):
         )
 
     try:
-        check_dc_purchase(request.dict())
+        check_dc_purchase(request.model_dump())
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -104,7 +104,7 @@ def update_dc_usage(db: Session, request: DcUpdate, current_user: dict):
             detail="No usage record found for your company."
         )
 
-    update_data = request.dict(exclude_unset=True)
+    update_data = request.model_dump(exclude_unset=True)
 
     try:
         check_dc_purchase(update_data)

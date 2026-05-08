@@ -3,3 +3,29 @@ dcinv.db
 .gitignore
 .git
 README.md
+
+# Python
+
+**pycache**/
+_.py[cod]
+_$py.class
+.venv/
+venv/
+ENV/
+
+# Databases
+
+_.db
+_.sqlite3
+
+# Testing & Linting
+
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+
+# Environment
+
+.env
+.dockerignore

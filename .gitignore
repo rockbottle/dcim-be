@@ -5,3 +5,35 @@ dcinv.db-journal
 *.tmp
 *.swp
 *.swo
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.venv/
+venv/
+ENV/
+.env
+
+# Database (Crucial to ignore your local dev data)
+*.db
+*.sqlite3
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Unit test / coverage reports
+.pytest_cache/
+.cache
+.coverage
+htmlcov/
+
+# Logs
+*.log
+
+# OS generated files
+.DS_Store
+Thumbs.db

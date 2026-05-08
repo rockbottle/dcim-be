@@ -1,35 +1,41 @@
-from sqlalchemy.orm import relationship, validates
+from sqlalchemy.orm import relationship, validates, Mapped, mapped_column # UPDATED: Added Mapped and mapped_column for 2.0 style
 from sqlalchemy.sql.schema import ForeignKey, CheckConstraint
 from sqlalchemy.sql.sqltypes import Integer, String, Boolean
 from db.database import Base
-from sqlalchemy import Column
+# from sqlalchemy import Column # REMOVED: No longer needed with mapped_column
 import re
 
 class DcCompany(Base):
     __tablename__ = 'companies'
-    id = Column(Integer, primary_key=True, index=True)  # Auto-generated unique ID
-    name = Column(String, unique=True, nullable=False)  # Unique company name
-    users = relationship("DcUser", back_populates="company")  # One-to-many with users
-    purchase = relationship("DcPurchase", back_populates="company", uselist=False)  # One-to-one with purchase
+    # UPDATED: Using Mapped[int] and mapped_column instead of Column(Integer, ...)
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    
+    # UPDATED: Added type hinting to relationships for better IDE support
+    users: Mapped[list["DcUser"]] = relationship("DcUser", back_populates="company")
+    purchase: Mapped["DcPurchase"] = relationship("DcPurchase", back_populates="company", uselist=False)
 
 
 class DcUser(Base):
     __tablename__ = 'users'
-    id = Column(Integer, primary_key=True, index=True)  # Auto-generated unique ID
-    username = Column(String, unique=True, nullable=False)  # Unique username
-    email = Column(String, unique=True, nullable=False)  # Unique email
-    password = Column(String, nullable=False)  # Hashed password
-    company_id = Column(Integer, ForeignKey('companies.id'), nullable=False)  # Links to company
-    company = relationship("DcCompany", back_populates="users")  # Many-to-one with company
-    items = relationship('DcInventory', back_populates='user')  # One-to-many with inventory
-    # Validator for non-empty fields
+    # UPDATED: Standardized to 2.0 mapped_column syntax
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    username: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    email: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    password: Mapped[str] = mapped_column(String, nullable=False)
+    company_id: Mapped[int] = mapped_column(ForeignKey('companies.id'), nullable=False)
+    
+    # UPDATED: Explicit Mapped types for relationships
+    company: Mapped["DcCompany"] = relationship("DcCompany", back_populates="users")
+    items: Mapped[list["DcInventory"]] = relationship('DcInventory', back_populates='user')
+
     @validates('username', 'password', 'company')
     def validate_non_empty_string(self, key, value):
-        if not value or not value.strip():
+        # UPDATED: Added isinstance check to prevent errors when value is a relationship object
+        if not value or (isinstance(value, str) and not value.strip()):
             raise ValueError(f"{key} cannot be empty or contain only whitespace.")
         return value
 
-    # Validator for email
     @validates('email')
     def validate_email(self, key, value):
         email_regex = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
@@ -39,27 +45,31 @@ class DcUser(Base):
 
 class DcInventory(Base):
     __tablename__ = 'inventory'
-    id = Column(Integer, primary_key=True, index=True)  # Auto-generated unique ID
-    device_type = Column(String, nullable=False)  # Type of device
-    device_hostname = Column(String, nullable=False)  # Hostname
-    device_model = Column(String, nullable=False)  # Model name
-    device_serial = Column(String, unique=True, nullable=False)  # Serial number
-    rack_name = Column(String, nullable=False)  # Rack name
-    rack_unit = Column(Integer, nullable=False)  # Rack unit
-    rack_uspace = Column(Integer, nullable=False)  # Rack unit space
-    device_power = Column(Integer, nullable=False)  # Power consumption
-    device_nports = Column(Integer, nullable=False)  # Network Ports
-    device_sports = Column(Integer, nullable=False)  # SAN Ports 
-    power_status = Column(Boolean, default=False)  # Power on/off
-    device_status = Column(Boolean, default=True)  # Device status
-    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)  # Links to user
-    company_id = Column(Integer, ForeignKey('companies.id'), nullable=False) # Links to company
-    user = relationship("DcUser", back_populates='items')  # Many-to-one with user
+    # UPDATED: Transitioned all Column calls to Mapped[type] = mapped_column
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    device_type: Mapped[str] = mapped_column(String, nullable=False)
+    device_hostname: Mapped[str] = mapped_column(String, nullable=False)
+    device_model: Mapped[str] = mapped_column(String, nullable=False)
+    device_serial: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    rack_name: Mapped[str] = mapped_column(String, nullable=False)
+    rack_unit: Mapped[int] = mapped_column(Integer, nullable=False)
+    rack_uspace: Mapped[int] = mapped_column(Integer, nullable=False)
+    device_power: Mapped[int] = mapped_column(Integer, nullable=False)
+    device_nports: Mapped[int] = mapped_column(Integer, nullable=False)
+    device_sports: Mapped[int] = mapped_column(Integer, nullable=False)
+    power_status: Mapped[bool] = mapped_column(Boolean, default=False)
+    device_status: Mapped[bool] = mapped_column(Boolean, default=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey('users.id'), nullable=False)
+    company_id: Mapped[int] = mapped_column(ForeignKey('companies.id'), nullable=False)
+    
+    user: Mapped["DcUser"] = relationship("DcUser", back_populates='items')
+
     __table_args__ = (
         CheckConstraint('rack_uspace > 0', name='check_rack_uspace_positive'),
         CheckConstraint('device_power > 0', name='check_device_power_positive'),
         CheckConstraint('device_nports > 0', name='check_device_nports_positive'),
     ) 
+
     @validates('device_type', 'device_hostname', 'device_model', 'device_serial', 'rack_name')
     def validate_non_empty_string(self, key, value):
         if not value or not value.strip():
@@ -69,14 +79,17 @@ class DcInventory(Base):
 
 class DcPurchase(Base):
     __tablename__ = 'dcusage'
-    id = Column(Integer, primary_key=True, index=True)  # Auto-generated unique ID
-    dcpower = Column(Integer, nullable=False)  # Purchased power
-    uspace = Column(Integer, nullable=False)  # Purchased rack space
-    nport = Column(Integer, nullable=False)  # Purchased network ports
-    sport = Column(Integer, nullable=False)  # Purchased SAN ports
-    company_id = Column(Integer, ForeignKey('companies.id'), nullable=False)  # Links to company (one-to-one)
-    created_by = Column(Integer, nullable=False)
-    company = relationship("DcCompany", back_populates="purchase")  # One-to-one with company
+    # UPDATED: Final set of 2.0 syntax updates for consistency
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    dcpower: Mapped[int] = mapped_column(Integer, nullable=False)
+    uspace: Mapped[int] = mapped_column(Integer, nullable=False)
+    nport: Mapped[int] = mapped_column(Integer, nullable=False)
+    sport: Mapped[int] = mapped_column(Integer, nullable=False)
+    company_id: Mapped[int] = mapped_column(ForeignKey('companies.id'), nullable=False)
+    created_by: Mapped[int] = mapped_column(Integer, nullable=False)
+    
+    company: Mapped["DcCompany"] = relationship("DcCompany", back_populates="purchase")
+
     __table_args__ = (
         CheckConstraint('dcpower > 0', name='check_dcpower_positive'),
         CheckConstraint('uspace > 0', name='check_uspace_positive'),
