@@ -65,7 +65,7 @@ jobs:
       # 4. E2E TESTS (Needs DB and Secret handling)
       - name: Run E2E Tests
         env:
-          DATABASE_URL: postgresql+asyncpg://test_user:test_password@localhost:5432/dcim_test
+          DATABASE_URL: sqlite:///./e2e_test.db
           JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
         run: |
           # Create the secret directory and file to test the /run/secrets logic
