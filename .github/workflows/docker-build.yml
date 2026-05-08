@@ -60,7 +60,7 @@ jobs:
           # We use an ENV var fallback here since your code supports it!
           JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
           DATABASE_URL: sqlite:///./test.db
-        run: pytest tests/unit # Assuming you separate unit tests
+        run: pytest tests/ # Assuming you separate unit tests
 
       # 4. E2E TESTS (Needs DB and Secret handling)
       - name: Run E2E Tests
