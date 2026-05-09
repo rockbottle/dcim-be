@@ -141,7 +141,10 @@ def create_dc_inventory(db: Session, request: DcInvBase, current_user: dict):
     if collision:
         raise HTTPException(
             status_code=400,
-            detail=f"Rack {request.rack_name} collision: Units {collision.rack_unit} to {collision.rack_unit + collision.rack_uspace - 1} are occupied.",
+            detail=(
+                f"Rack {request.rack_name} collision: Units {collision.rack_unit} to "
+                f"{collision.rack_unit + collision.rack_uspace - 1} are occupied."
+            ),
         )
 
     new_inventory = DcInventory(**request.model_dump(), user_id=user_id, company_id=company_id)
