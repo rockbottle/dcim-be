@@ -1,6 +1,7 @@
 import pytest
 import time
 
+
 @pytest.mark.asyncio
 async def test_extended_lifecycle_flow(async_client):
     ac = async_client
@@ -10,51 +11,55 @@ async def test_extended_lifecycle_flow(async_client):
     new_pass = "UpdatedPassword456!"
 
     # --- 1. SETUP: Register and Login ---
-    reg_resp = await ac.post("/user/create", json={
-        "username": test_user, 
-        "email": f"{test_user}@test.com",
-        "password": test_pass, 
-        "company_name": f"Corp_{unique_suffix}"
-    })
+    reg_resp = await ac.post(
+        "/user/create",
+        json={
+            "username": test_user,
+            "email": f"{test_user}@test.com",
+            "password": test_pass,
+            "company_name": f"Corp_{unique_suffix}",
+        },
+    )
     assert reg_resp.status_code == 200, f"Registration failed: {reg_resp.text}"
 
     login_resp = await ac.post("/token", data={"username": test_user, "password": test_pass})
     assert login_resp.status_code == 200, f"Login failed: {login_resp.text}"
-    
+
     token = login_resp.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
 
     # --- 2. USAGE UPDATE ---
     # Create initial usage
     await ac.post("/usage/create", json={"dcpower": 1000, "uspace": 10, "nport": 10, "sport": 10}, headers=headers)
-    
+
     # Update usage - Sending full payload to satisfy potential Pydantic/Business logic constraints
-    usage_update = await ac.put("/usage/update", json={
-        "dcpower": 2000, 
-        "uspace": 100, 
-        "nport": 100, 
-        "sport": 100
-    }, headers=headers)
+    usage_update = await ac.put(
+        "/usage/update", json={"dcpower": 2000, "uspace": 100, "nport": 100, "sport": 100}, headers=headers
+    )
     assert usage_update.status_code == 200, f"Usage update failed: {usage_update.text}"
 
     # --- 3. INVENTORY UPDATE & DELETE ---
-    inv_resp = await ac.post("/inventory/create", json={
-        "device_type": "Switch", 
-        "device_hostname": "sw-01", 
-        "device_model": "C9300",
-        "device_serial": f"SN-{unique_suffix}", 
-        "rack_name": "R1", 
-        "rack_unit": 1,
-        "rack_uspace": 1, 
-        "device_power": 100, 
-        "device_nports": 48, 
-        "device_sports": 4,
-        "power_status": True, 
-        "device_status": True
-    }, headers=headers)
-    
+    inv_resp = await ac.post(
+        "/inventory/create",
+        json={
+            "device_type": "Switch",
+            "device_hostname": "sw-01",
+            "device_model": "C9300",
+            "device_serial": f"SN-{unique_suffix}",
+            "rack_name": "R1",
+            "rack_unit": 1,
+            "rack_uspace": 1,
+            "device_power": 100,
+            "device_nports": 48,
+            "device_sports": 4,
+            "power_status": True,
+            "device_status": True,
+        },
+        headers=headers,
+    )
+
     assert inv_resp.status_code == 200, f"Inventory creation failed: {inv_resp.text}"
-    
+
     # Robustly get the ID (ensuring it's an integer)
     resp_data = inv_resp.json()
     device_id = resp_data.get("id")
@@ -62,8 +67,8 @@ async def test_extended_lifecycle_flow(async_client):
 
     # Update - ID passed as query parameter based on error log
     update_resp = await ac.put(
-        "/inventory/update/", 
-        params={"id": int(device_id)}, 
+        "/inventory/update/",
+        params={"id": int(device_id)},
         json={
             "device_type": "Switch",
             "device_hostname": "sw-01-updated",
@@ -76,9 +81,9 @@ async def test_extended_lifecycle_flow(async_client):
             "device_nports": 24,
             "device_sports": 4,
             "power_status": True,
-            "device_status": True
-        }, 
-        headers=headers
+            "device_status": True,
+        },
+        headers=headers,
     )
     assert update_resp.status_code == 200, f"Inventory update failed: {update_resp.text}"
 

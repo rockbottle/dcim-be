@@ -1,0 +1,23 @@
+[flake8]
+# Matches your CI's max-line-length
+max-line-length = 127
+# Matches your CI's complexity limit
+max-complexity = 10
+
+# E9, F63, F7, F82 are the "logic/syntax" errors you wanted to block on
+# We include E, W, and F to see standard PEP8 and Pyflakes warnings
+select = E9,F63,F7,F82,E,W,F
+
+# Optional: Ignore specific rules that might be too annoying
+# E203: whitespace before ':' (conflicts with Black formatter)
+# W503: line break before binary operator
+ignore = E203, W503
+
+# Don't waste time linting these folders
+exclude = 
+    .git,
+    __pycache__,
+    build,
+    dist,
+    venv,
+    .venv

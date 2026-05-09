@@ -1,5 +1,6 @@
 import pytest
 
+
 def test_create_inventory_device(client):
     """
     Route: /inventory/create
@@ -16,11 +17,12 @@ def test_create_inventory_device(client):
         "device_nports": 48,
         "device_sports": 4,
         "power_status": True,
-        "device_status": True
+        "device_status": True,
     }
     response = client.post("/inventory/create", json=payload)
     assert response.status_code == 200
     assert response.json()["device_hostname"] == "core-sw-01"
+
 
 def test_get_my_inventory(client):
     """
@@ -40,18 +42,19 @@ def test_get_my_inventory(client):
         "device_nports": 1,
         "device_sports": 1,
         "power_status": True,
-        "device_status": True
+        "device_status": True,
     }
     client.post("/inventory/create", json=payload)
 
     # 2. Now call the GET details - it should return 200 now
     response = client.get("/inventory/my_details")
-    
+
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, list)
     assert len(data) >= 1
     assert data[0]["device_hostname"] == "seed-device"
+
 
 def test_update_inventory_device(client):
     """
@@ -71,7 +74,7 @@ def test_update_inventory_device(client):
         "device_nports": 24,
         "device_sports": 2,
         "power_status": True,
-        "device_status": True
+        "device_status": True,
     }
     create_resp = client.post("/inventory/create", json=payload)
     device_id = create_resp.json()["id"]
@@ -81,6 +84,7 @@ def test_update_inventory_device(client):
     # Using query param 'id' and trailing slash after 'update'
     response = client.put(f"/inventory/update/?id={device_id}", json=update_payload)
     assert response.status_code == 200
+
 
 def test_delete_inventory_device(client):
     """
@@ -99,7 +103,7 @@ def test_delete_inventory_device(client):
         "device_nports": 2,
         "device_sports": 0,
         "power_status": True,
-        "device_status": True
+        "device_status": True,
     }
     create_resp = client.post("/inventory/create", json=payload)
     device_id = create_resp.json()["id"]

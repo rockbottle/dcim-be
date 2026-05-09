@@ -4,6 +4,7 @@ from db.models import DcUser, DcCompany, DcPurchase
 from schemas import UserBase, UserUpdate
 from fastapi import HTTPException, status
 
+
 def create_dcuser(db: Session, request: UserBase):
     company = db.query(DcCompany).filter(DcCompany.name == request.company_name).first()
 
@@ -23,22 +24,15 @@ def create_dcuser(db: Session, request: UserBase):
     db.commit()
     db.refresh(new_user)
 
-    return {
-        "id": new_user.id,
-        "username": new_user.username,
-        "email": new_user.email,
-        "company_name": company.name
-    }
+    return {"id": new_user.id, "username": new_user.username, "email": new_user.email, "company_name": company.name}
+
 
 def get_my_details(db: Session, current_user: dict):
     company_id = current_user.get("company_id")
     user_id = current_user.get("user_id")
 
     if not company_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid user context"
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid user context")
 
     users = (
         db.query(DcUser.id, DcUser.username, DcUser.email, DcCompany.name.label("company_name"))
@@ -48,18 +42,10 @@ def get_my_details(db: Session, current_user: dict):
     )
 
     if not users:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="No Users found for your company"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No Users found for your company")
 
-    return [
-        {
-            "username": user.username,
-            "email": user.email,
-            "company_name": user.company_name
-        } for user in users
-    ]
+    return [{"username": user.username, "email": user.email, "company_name": user.company_name} for user in users]
+
 
 def get_dcuser_by_username_auth(db: Session, username: str):
     user = (
@@ -70,28 +56,23 @@ def get_dcuser_by_username_auth(db: Session, username: str):
     )
 
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f'User with username {username} not found'
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"User with username {username} not found")
 
     return {
         "user_id": user.id,
         "username": user.username,
         "email": user.email,
         "company_id": user.company_id,
-        "company_name": user.company_name
+        "company_name": user.company_name,
     }
+
 
 def update_dcuser(db: Session, request: UserUpdate, current_user: dict):
     company_id = current_user.get("company_id")
     user_id = current_user.get("user_id")
 
     if not company_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid user context"
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid user context")
 
     user = (
         db.query(DcUser)
@@ -101,10 +82,7 @@ def update_dcuser(db: Session, request: UserUpdate, current_user: dict):
     )
 
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f'User with id {user_id} not found'
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"User with id {user_id} not found")
 
     update_data = request.model_dump(exclude_unset=True)
     for key, value in update_data.items():
@@ -113,26 +91,19 @@ def update_dcuser(db: Session, request: UserUpdate, current_user: dict):
     db.commit()
     return {"message": "User details updated successfully"}
 
+
 def delete_dcuser(db: Session, current_user: dict):
     company_id = current_user.get("company_id")
     user_id = current_user.get("user_id")
 
     if not company_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid user context"
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid user context")
 
-    usage_record = (
-        db.query(DcPurchase)
-        .filter(DcPurchase.company_id == company_id, DcPurchase.created_by == user_id)
-        .first()
-    )
+    usage_record = db.query(DcPurchase).filter(DcPurchase.company_id == company_id, DcPurchase.created_by == user_id).first()
 
     if usage_record:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot delete user as usage record exists for the company."
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot delete user as usage record exists for the company."
         )
 
     user = (
@@ -143,23 +114,18 @@ def delete_dcuser(db: Session, current_user: dict):
     )
 
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f'User with id {user_id} not found'
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"User with id {user_id} not found")
 
     db.delete(user)
     db.commit()
-    return 'User got deleted'
+    return "User got deleted"
+
 
 def get_dcuser_by_company_name(db: Session, current_user: dict):
     company_id = current_user.get("company_id")
 
     if not company_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid user context"
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid user context")
 
     users = (
         db.query(DcUser.username, DcUser.email, DcCompany.name.label("company_name"))
@@ -170,14 +136,7 @@ def get_dcuser_by_company_name(db: Session, current_user: dict):
 
     if not users:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f'No users found for company name {DcUser.company_name}'
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"No users found for company name {DcUser.company_name}"
         )
 
-    return [
-        {
-            "username": user.username,
-            "email": user.email,
-            "company_name": user.company_name
-        } for user in users
-    ]
+    return [{"username": user.username, "email": user.email, "company_name": user.company_name} for user in users]

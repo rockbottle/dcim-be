@@ -13,44 +13,48 @@ from db import db_user
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
+
 def get_secret(secret_name):
     try:
-        with open(f'/run/secrets/{secret_name}', 'r') as f:
+        with open(f"/run/secrets/{secret_name}", "r") as f:
             return f.read().strip()
     except IOError:
         return os.getenv(secret_name)
 
-SECRET_KEY = get_secret('JWT_SECRET_KEY')
-ALGORITHM = 'HS256'
+
+SECRET_KEY = get_secret("JWT_SECRET_KEY")
+ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
+
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
-  to_encode = data.copy()
-  if expires_delta:
-    expire = datetime.now(timezone.utc) + expires_delta
-  else:
-    expire = datetime.now(timezone.utc) + timedelta(minutes=15)
-  to_encode.update({"exp": expire})
-  encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-  return encoded_jwt
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.now(timezone.utc) + expires_delta
+    else:
+        expire = datetime.now(timezone.utc) + timedelta(minutes=15)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-  credentials_exception = HTTPException(
-    status_code=status.HTTP_401_UNAUTHORIZED,
-    detail='Could not validate credentials',
-    headers={"WWW-Authenticate": "Bearer"}
-  )
-  try:
-    payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-    username: str = payload.get("sub")
-    if username is None:
-      raise credentials_exception
-  except JWTError:
-    raise credentials_exception
-  
-  user = db_user.get_dcuser_by_username_auth(db, username)
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
 
-  if user is None:
-    raise credentials_exception
+    user = db_user.get_dcuser_by_username_auth(db, username)
 
-  return user
+    if user is None:
+        raise credentials_exception
+
+    return user

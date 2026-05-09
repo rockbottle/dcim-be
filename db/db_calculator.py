@@ -1,8 +1,10 @@
 from sqlalchemy.orm import Session
-#from sqlalchemy.exc import NoResultFound
+
+# from sqlalchemy.exc import NoResultFound
 from sqlalchemy.sql import func
 from fastapi import HTTPException, status
 from db.models import DcInventory, DcPurchase
+
 
 def calculate_company_totals(db: Session, current_user: dict) -> dict:
     """
@@ -23,17 +25,20 @@ def calculate_company_totals(db: Session, current_user: dict) -> dict:
 
     if not company_id:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Company ID is missing from the current user details."
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Company ID is missing from the current user details."
         )
 
     # Query to calculate totals
-    totals = db.query(
-        func.sum(DcInventory.device_power).label("total_power"),
-        func.sum(DcInventory.rack_uspace).label("total_uspace"),
-        func.sum(DcInventory.device_nports).label("total_nports"),
-        func.sum(DcInventory.device_sports).label("total_sports")
-    ).filter(DcInventory.company_id == company_id).first()
+    totals = (
+        db.query(
+            func.sum(DcInventory.device_power).label("total_power"),
+            func.sum(DcInventory.rack_uspace).label("total_uspace"),
+            func.sum(DcInventory.device_nports).label("total_nports"),
+            func.sum(DcInventory.device_sports).label("total_sports"),
+        )
+        .filter(DcInventory.company_id == company_id)
+        .first()
+    )
 
     return {
         "total_power": totals.total_power if totals.total_power and totals.total_power > 0 else 0,
@@ -42,31 +47,34 @@ def calculate_company_totals(db: Session, current_user: dict) -> dict:
         "total_sports": totals.total_sports if totals.total_sports and totals.total_sports > 0 else 0,
     }
 
+
 def calculate_available_resources(db: Session, current_user: dict) -> dict:
     company_id = current_user.get("company_id")
-    
+
     try:
         # Fetch the purchased resources for the company
-        purchase = db.query(
-            DcPurchase.dcpower,
-            DcPurchase.uspace,
-            DcPurchase.nport,
-            DcPurchase.sport
-        ).filter(DcPurchase.company_id == company_id).first()
-        
+        purchase = (
+            db.query(DcPurchase.dcpower, DcPurchase.uspace, DcPurchase.nport, DcPurchase.sport)
+            .filter(DcPurchase.company_id == company_id)
+            .first()
+        )
+
         if not purchase:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"No purchase data found for company with ID {company_id}."
+                status_code=status.HTTP_404_NOT_FOUND, detail=f"No purchase data found for company with ID {company_id}."
             )
 
         # Fetch the current usage for the company
-        usage = db.query(
-            func.sum(DcInventory.device_power).label("total_power"),
-            func.sum(DcInventory.rack_uspace).label("total_uspace"),
-            func.sum(DcInventory.device_nports).label("total_nports"),
-            func.sum(DcInventory.device_sports).label("total_sports")
-        ).filter(DcInventory.company_id == company_id).one()
+        usage = (
+            db.query(
+                func.sum(DcInventory.device_power).label("total_power"),
+                func.sum(DcInventory.rack_uspace).label("total_uspace"),
+                func.sum(DcInventory.device_nports).label("total_nports"),
+                func.sum(DcInventory.device_sports).label("total_sports"),
+            )
+            .filter(DcInventory.company_id == company_id)
+            .one()
+        )
 
         # Calculate the available resources
         available_resources = {
@@ -81,5 +89,5 @@ def calculate_available_resources(db: Session, current_user: dict) -> dict:
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"An error occurred while calculating resources: {str(e)}"
+            detail=f"An error occurred while calculating resources: {str(e)}",
         )
