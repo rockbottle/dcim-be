@@ -12,6 +12,9 @@ on:
       - "*.py"
       - "requirements*.txt"
       - "Dockerfile"
+permissions:
+  contents: read
+  packages: write
 
 jobs:
   validate-test-deploy:
