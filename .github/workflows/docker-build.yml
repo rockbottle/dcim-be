@@ -12,16 +12,17 @@ on:
       - "*.py"
       - "requirements*.txt"
       - "Dockerfile"
+
 permissions:
   contents: read
   packages: write
+  security-events: write # Required for uploading scan results if using GitHub Security tab
 
 jobs:
   validate-test-deploy:
     runs-on: ubuntu-latest
 
     services:
-      # Database service for E2E tests
       postgres:
         image: postgres:15-alpine
         env:
@@ -46,7 +47,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # 2. PREPARE TEST ENVIRONMENT
+      # 2. PREPARE ENVIRONMENT
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -57,29 +58,34 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
           pip install -r requirements-test.txt
+          pip install flake8
 
-      # 3. UNIT TESTS (Fast, no DB needed)
+      # 3. CODE LINTING (Static Analysis)
+      - name: Run Lint Check (Flake8)
+        run: |
+          # Stop the build if there are Python syntax errors or undefined names
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          # Exit-zero treats all other style issues as warnings
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+      # 4. UNIT TESTS
       - name: Run Unit Tests
         env:
-          # We use an ENV var fallback here since your code supports it!
           JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
           DATABASE_URL: sqlite:///./test.db
-        run: pytest tests/ # Assuming you separate unit tests
+        run: pytest tests/
 
-      # 4. E2E TESTS (Needs DB and Secret handling)
+      # 5. E2E TESTS
       - name: Run E2E Tests
         env:
           DATABASE_URL: sqlite:///./e2e_test.db
           JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
         run: |
-          # Create the secret directory and file to test the /run/secrets logic
           sudo mkdir -p /run/secrets
           echo "${{ secrets.JWT_SECRET_KEY }}" | sudo tee /run/secrets/JWT_SECRET_KEY
-
-          # Run the E2E flow
           pytest tests/test_e2e_dcim_flow.py -v
 
-      # 5. DOCKER BUILD & PUSH
+      # 6. DOCKER PREPARATION & SCANNING
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -89,11 +95,30 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOKERHUB_TOKEN }}
 
+      - name: Build local image for scanning
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          load: true # Push to local Docker daemon, not registry
+          tags: dcim-be:scan
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: "dcim-be:scan"
+          format: "table"
+          exit-code: "1" # Fails the build if HIGH/CRITICAL vulnerabilities are found
+          ignore-unfixed: true
+          vuln-type: "os,library"
+          severity: "CRITICAL,HIGH"
+
+      # 7. FINAL BUILD & PUSH
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
           context: .
-          # We don't need to run tests inside build anymore because they passed above
           push: true
           tags: |
             pramoneo/dcim-be:latest
