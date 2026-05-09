@@ -21,9 +21,9 @@ def create_user(request: UserBase, db: Session = Depends(get_db)):
 # def get_all_users(db: Session = Depends(get_db), current_user: UserBase = Depends(get_current_user)):
 #  return db_user.get_all_dcusers(db)
 
-##@router.get('/')
-##def get_all_users(db: Session = Depends(get_db), current_user: UserBase = Depends(get_current_user)):
-##  return db_user.get_all_dcusers(db, current_user)
+# @router.get('/')
+# def get_all_users(db: Session = Depends(get_db), current_user: UserBase = Depends(get_current_user)):
+#  return db_user.get_all_dcusers(db, current_user)
 
 
 @router.get("/my_details")
@@ -31,10 +31,10 @@ def get_all_users(db: Session = Depends(get_db), current_user: UserBase = Depend
     return db_user.get_my_details(db, current_user)
 
 
-## Read one user
-##@router.get('/{id}')
-##def get_specific_user(id: int, db: Session = Depends(get_db), current_user: UserBase = Depends(get_current_user)):
-##  return db_user.get_dcuser_by_id(db, id, current_user)
+# Read one user
+# @router.get('/{id}')
+# def get_specific_user(id: int, db: Session = Depends(get_db), current_user: UserBase = Depends(get_current_user)):
+#  return db_user.get_dcuser_by_id(db, id, current_user)
 
 # Read one user with username
 # @router.get('/by_username/{username}')

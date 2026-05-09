@@ -1,5 +1,5 @@
 import os
-import pytest
+# import pytest
 
 
 def test_liveness_probe(client):
