@@ -1,4 +1,4 @@
-from typing import List
+# from typing import List
 from schemas import UserBase, UserUpdate
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session

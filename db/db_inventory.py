@@ -1,5 +1,6 @@
 from sqlalchemy.orm.session import Session
-from sqlalchemy import and_, func, or_
+# from sqlalchemy import and_, func, or_
+from sqlalchemy import and_, func
 from schemas import DcInvBase, DcInvUpdate
 from db.models import DcInventory, DcUser, DcPurchase
 from fastapi import HTTPException, status
